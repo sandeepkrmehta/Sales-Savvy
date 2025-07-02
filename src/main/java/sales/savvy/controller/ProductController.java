@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import sales.savvy.entity.Product;
@@ -32,12 +33,11 @@ public class ProductController {
     }
     
     @PostMapping("/deleteProduct")
-    public String deleteProduct(@RequestBody Product prod) {
-        service.deleteProduct(prod.getId());
-        return "Product deleted successfully!";
+    public void deleteProduct(@RequestParam Long id) {
+        service.deleteProduct(id);
     }
     
-    @GetMapping("/showProduct")
+    @GetMapping("/getAllProducts")
     public List<Product> getAll() {
     	return service.getAllProducts();
     }

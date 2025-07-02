@@ -18,18 +18,19 @@ public class UserController {
     UserService service;
 
     @PostMapping("/signUp")
-    public String signUp(@RequestBody User user) {
-    	String username = user.getUsername();
-    	User u = service.getUser(username);
-    	
-    	if (u != null) {
-    		return "Already exit";
-    	}
-    	else {
-    		service.addUser(user);
-    		return "Success";
-    	}
-    }
+	public String signUp(@RequestBody User user) {
+		String username = user.getUsername();
+		User u = service.getUser(username);
+		
+		if(u != null) {
+			return "fail";
+		}
+		else {
+			service.addUser(user);
+			return "success";
+		}
+		
+	}
     
     
     @PostMapping("/signIn")

@@ -13,21 +13,29 @@ public class ProductServiceImplementation
 			implements ProductService {
 	@Autowired
 	ProductRepository repo;
-	
-	 @Override
-	 public void addProduct(Product prod) {
-	       repo.save(prod);
-    }
-	 
-	 public void updateProduct(Product prod) {
-		 repo.save(prod);
-	 }
-	 
-	 public void deleteProduct(Long id) {
-		 repo.deleteById(id);
-	 }
-	 
-	 public List<Product>getAllProducts() {
-		 return repo.findAll();
+
+	@Override
+	public void addProduct(Product prod) {
+		repo.save(prod);
+	}
+
+	@Override
+	public Product searchProduct(Long id) {
+		return repo.findById(id).get();
+	}
+
+	@Override
+	public List<Product> getAllProducts() {
+		return repo.findAll();
+	}
+
+	@Override
+	public void updateProduct(Product prod) {
+		repo.save(prod);
+	}
+
+	@Override
+	public void deleteProduct(Long id) {
+		repo.deleteById(id);
 	 }
 }
