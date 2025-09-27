@@ -1,14 +1,22 @@
-# Step 1: Use official OpenJDK image
-FROM openjdk:17-jdk-slim
+# Step 1: Use Maven image to build the jar
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
-# Step 2: Set working directory inside the container
 WORKDIR /app
 
-# Step 3: Copy the jar file from target folder to container
-COPY target/com.salesSavvy-0.0.1-SNAPSHOT.jar app.jar
+# Copy all files from your backend folder to container
+COPY . .
 
-# Step 4: Expose the port on which Spring Boot runs
+# Build the application (this will create target/com.salesSavvy-0.0.1-SNAPSHOT.jar)
+RUN mvn clean package -DskipTests
+
+# Step 2: Use lightweight JDK image for running the app
+FROM openjdk:17-jdk-slim
+
+WORKDIR /app
+
+# Copy jar file from previous build stage
+COPY --from=build /app/target/com.salesSavvy-0.0.1-SNAPSHOT.jar app.jar
+
 EXPOSE 8080
 
-# Step 5: Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
