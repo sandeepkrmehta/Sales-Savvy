@@ -14,16 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.salesSavvy.entity.Cart;
-import com.salesSavvy.entity.CartItem;
-import com.salesSavvy.entity.Product;
-import com.salesSavvy.entity.Users;
+import com.salesSavvy.entity.*;
 import com.salesSavvy.service.CartService;
 import com.salesSavvy.service.ProductService;
 import com.salesSavvy.service.UsersService;
 
 //@CrossOrigin("*")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 public class ProductController {
 	@Autowired
@@ -116,7 +113,6 @@ public class ProductController {
 
 	    return "cart added";
 	}
-
 
 	@GetMapping("/getCart/{username}")
 	public List<CartItem> getCart(@PathVariable String username) {

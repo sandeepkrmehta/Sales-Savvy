@@ -1,6 +1,8 @@
 package com.salesSavvy.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -12,38 +14,42 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Long id;
+    private Long id;
 
     @NotBlank(message = "Username cannot be blank")
     @Size(min = 4, max = 20, message = "Username must be between 4 and 20 characters")
     @Column(unique = true)
-    String username;
+    private String username;
 
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
     @Column(unique = true)
-    String email;
+    private String email;
 
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 8, message = "Password must be at least 8 characters long")
-    String password;
+    private String password;
 
-    String gender;
+    private String gender;
 
-    String dob;
+    private String dob;
 
     @NotBlank(message = "Role cannot be blank")
-    String role;   // USER / ADMIN
+    private String role;   // USER / ADMIN
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnoreProperties("cart")
     private Cart cart;
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("user")
+    private List<Orders> orders;
 
     /* ---------- constructors ---------- */
     public Users() {}
 
     public Users(Long id, String username, String email, String password,
-                 String gender, String dob, String role, Cart cart) {
+                 String gender, String dob, String role, Cart cart, List<Orders> orders) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -52,6 +58,7 @@ public class Users {
         this.dob = dob;
         this.role = role;
         this.cart = cart;
+        this.orders = orders;
     }
 
 
@@ -80,10 +87,13 @@ public class Users {
     public Cart getCart()              { return cart; }
     public void setCart(Cart cart)     { this.cart = cart; }
 
+    public List<Orders> getOrders() { return orders; }
+    public void setOrders(List<Orders> orders) { this.orders = orders; }
+    
     @Override
     public String toString() {
         return "Users [id=" + id + ", username=" + username + ", email=" + email +
                ", password=" + password + ", gender=" + gender + ", dob=" + dob +
-               ", role=" + role + ", cart=" + cart + "]";
+               ", role=" + role + ", cart=" + cart + ", orders=" + orders + "]";
     }
 }

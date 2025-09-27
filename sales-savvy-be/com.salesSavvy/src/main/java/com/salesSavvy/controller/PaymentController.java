@@ -3,28 +3,18 @@ package com.salesSavvy.controller;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 
 import com.razorpay.Order;
 import com.razorpay.RazorpayException;
-import com.salesSavvy.dto.PaymentRequest;
-import com.salesSavvy.dto.PaymentVerifyRequest;
-import com.salesSavvy.entity.Orders;
-import com.salesSavvy.entity.Users;
+import com.salesSavvy.dto.*;
+import com.salesSavvy.entity.*;
 import com.salesSavvy.repository.OrderRepository;
-import com.salesSavvy.service.CartService;
-import com.salesSavvy.service.PaymentService;
-import com.salesSavvy.service.UsersService;
+import com.salesSavvy.service.*;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
-@CrossOrigin("*")
 public class PaymentController {
 
     @Autowired PaymentService  payService;
@@ -42,7 +32,7 @@ public class PaymentController {
         Order rzp = payService.createRzpOrder(req.amount);
 
         Orders o  = new Orders();
-        o.setId(rzp.get("id"));
+        o.setRazorpayOrderId(rzp.get("id"));   // ✅ store Razorpay ID separately
         o.setAmount(req.amount);
         o.setCurrency("INR");
         o.setStatus("CREATED");
@@ -64,33 +54,38 @@ public class PaymentController {
         if (!payService.verifySignature(req.orderId, req.paymentId, req.signature))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("signature mismatch");
 
-        Orders ord = orderRepo.findById(req.orderId).orElseThrow();
-        ord.setStatus("PAID");
-        ord.setPaymentId(req.paymentId);
-        orderRepo.save(ord);
+        try {
+            Orders ord = orderRepo.findByRazorpayOrderId(req.orderId).orElseThrow(); // ✅ lookup by Razorpay ID
+            ord.setStatus("PAID");
+            ord.setPaymentId(req.paymentId);
+            orderRepo.saveAndFlush(ord);
 
-        cartService.clearCart(req.username);   // empty cart
+            cartService.clearCart(req.username);   // empty cart
 
-        return ResponseEntity.ok(ord.getId()); // for React redirect
+            return ResponseEntity.ok(ord.getRazorpayOrderId()); // return Razorpay ID
+        } catch (org.hibernate.StaleObjectStateException | jakarta.persistence.OptimisticLockException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                                 .body("Order was updated by another process. Please try again.");
+        }
     }
 
     /* ---------- 3a. raw entity (optional) ---------- */
-    @GetMapping("/order/{orderId}")
-    public Orders getOrder(@PathVariable String orderId) {
-        return orderRepo.findById(orderId).orElse(null);
+    @GetMapping("/order/{razorpayOrderId}")
+    public Orders getOrder(@PathVariable String razorpayOrderId) {
+        return orderRepo.findByRazorpayOrderId(razorpayOrderId).orElse(null);
     }
 
     /* ---------- 3b. lean summary for React ---------- */
-    @GetMapping("/order/summary/{orderId}")
-    public Map<String, Object> getOrderSummary(@PathVariable String orderId) {
+    @GetMapping("/order/summary/{razorpayOrderId}")
+    public Map<String, Object> getOrderSummary(@PathVariable String razorpayOrderId) {
 
-        Orders o = orderRepo.findById(orderId).orElse(null);
+        Orders o = orderRepo.findByRazorpayOrderId(razorpayOrderId).orElse(null);
         if (o == null) return Map.of("error", "not-found");
 
-        int totalRupees = o.getAmount() / 100;
+        double totalRupees = o.getAmount() / 100;
 
         return Map.of(
-            "orderId", o.getId(),
+            "orderId", o.getRazorpayOrderId(),  // ✅ return Razorpay ID
             "status",  o.getStatus(),
             "total",   totalRupees,
             "items",   o.getItems().stream().map(ci -> Map.of(

@@ -1,0 +1,28 @@
+.container {
+  padding: 20px;
+}
+
+.search-bar {
+  padding: 8px;
+  width: 40%;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.table th, .table td {
+  padding: 10px;
+  text-align: center;
+}
+
+.btn-danger {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+}
