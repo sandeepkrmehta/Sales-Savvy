@@ -74,7 +74,7 @@ export default function Customer_home() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        */}
+        // */}
       </header>
 
       <div className="container">

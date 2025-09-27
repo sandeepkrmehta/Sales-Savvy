@@ -5,7 +5,7 @@ public class PaymentRequest {
     public int    amount;    // paise
 	public PaymentRequest() {
 		super();
-		// Auto-generated constructor stub
+		
 	}
 	public PaymentRequest(String username, int amount) {
 		super();

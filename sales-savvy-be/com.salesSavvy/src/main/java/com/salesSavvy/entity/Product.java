@@ -1,30 +1,43 @@
 package com.salesSavvy.entity;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.util.List;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 
 @Entity
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Long id;
+    private Long id;
 
-    String name;
-    String description;
-    int    price;
-    String photo;
-    String category;
-    List<String> reviews;
+
+    @NotBlank(message = "Product name cannot be blank")
+    @Size(min = 3, max = 50, message = "Product name must be between 3 and 50 characters")
+    private String name;
+
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
+    private String description;
+
+    @Min(value = 1, message = "Price must be greater than 0")
+    private BigDecimal price;
+
+    private String photo;     // Product image URL/path
+
+    @NotBlank(message = "Category cannot be blank")
+    private String category;
+
+    @ElementCollection
+    private List<String> reviews;  // List of reviews (just text)
 
     /* ---------- constructors ---------- */
     public Product() {}
 
-    public Product(Long id, String name, String description, int price,
+    public Product(Long id, String name, String description, @Min(value = 1, message = "Price must be greater than 0") BigDecimal price,
                    String photo, String category, List<String> reviews) {
         this.id = id;
         this.name = name;
@@ -45,8 +58,8 @@ public class Product {
     public String getDescription()       { return description; }
     public void setDescription(String d) { this.description = d; }
 
-    public int getPrice()                { return price; }
-    public void setPrice(int price)      { this.price = price; }
+    public BigDecimal getPrice()                { return price; }
+    public void setPrice(BigDecimal price)      { this.price = price; }
 
     public String getPhoto()             { return photo; }
     public void setPhoto(String photo)   { this.photo = photo; }

@@ -1,35 +1,22 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-/**
- * Public landing page
- * Brand logo + elevator pitch + 2 large CTA cards
- */
 export default function Welcome() {
+  const navigate = useNavigate();
   return (
-    <section className="hero">
-      {/* simple text-logo */}
-      <h1 className="brand">
-        Sales <span>Savvy</span>
-      </h1>
-
-      {/* one-liner + elevator pitch */}
-      <p className="tagline">
-        Shop smarter, not harder. Sales&nbsp;Savvy brings hand-picked deals,
-        lightning-fast delivery and a personalised cart—all in one place.
-        Sign up free and start exploring today!
+    <div className="container">
+      <h3 className="title">Welcome to Sales-Savvy</h3>
+      <h5 className="subtitle">- Your 1-stop shopping solution!</h5>
+      <p className="description">
+        Discover top deals, hand-picked products, and a seamless shopping journey built just for you.  
+        Start saving time and money today!
       </p>
-
-      {/* big call-to-action blocks */}
-      <div className="cta-blocks">
-        <NavLink to="/sign_up" className="cta-card">
-          <span className="cta-text">Create account</span>
-        </NavLink>
-
-        <NavLink to="/sign_in" className="cta-card">
-          <span className="cta-text">Sign&nbsp;in</span>
-        </NavLink>
-      </div>
-    </section>
+      <button className="btn btn-primary" onClick={() => navigate('/sign_in_page')}>
+        SIGN IN
+      </button>
+      <button className="btn btn-secondary" onClick={() => navigate('/sign_up_page')}>
+        SIGN UP
+      </button>
+    </div>
   );
 }

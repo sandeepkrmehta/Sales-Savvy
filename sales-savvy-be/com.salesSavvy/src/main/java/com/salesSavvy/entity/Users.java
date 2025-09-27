@@ -2,12 +2,10 @@ package com.salesSavvy.entity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 public class Users {
@@ -16,15 +14,29 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.AUTO)
     Long id;
 
+    @NotBlank(message = "Username cannot be blank")
+    @Size(min = 4, max = 20, message = "Username must be between 4 and 20 characters")
+    @Column(unique = true)
     String username;
+
+    @NotBlank(message = "Email cannot be blank")
+    @Email(message = "Invalid email format")
+    @Column(unique = true)
     String email;
+
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     String password;
+
     String gender;
+
     String dob;
-    String role;
+
+    @NotBlank(message = "Role cannot be blank")
+    String role;   // USER / ADMIN
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference        // serialise Users → Cart (inverse of @JsonBackReference)
+    @JsonManagedReference
     private Cart cart;
 
     /* ---------- constructors ---------- */
@@ -41,6 +53,7 @@ public class Users {
         this.role = role;
         this.cart = cart;
     }
+
 
     /* ---------- getters / setters ---------- */
     public Long getId()                { return id; }
