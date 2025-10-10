@@ -1,80 +1,156 @@
 package com.salesSavvy.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
+import com.salesSavvy.dto.AuthResponse;
+import com.salesSavvy.dto.UserResponse;
 import com.salesSavvy.entity.*;
+import com.salesSavvy.exception.BadRequestException;
+import com.salesSavvy.exception.DuplicateResourceException;
+import com.salesSavvy.exception.ResourceNotFoundException;
+import com.salesSavvy.security.JwtUtil;
 import com.salesSavvy.service.UsersService;
 
-@CrossOrigin("*")
 @RestController
 public class UsersController {
-	@Autowired
-	UsersService service;
+	
+	private static final Logger logger = LoggerFactory.getLogger(UsersController.class);
+	
+	@Autowired private UsersService service;
+	@Autowired private JwtUtil jwtUtil;
 	
 	// ---------------- SignUp ----------------
 	@PostMapping("/signUp")
-	public String signUp(@RequestBody Users user) {
-		String msg = "";
-		String username = user.getUsername();
-		Users u = service.getUser(username);
-		if(u == null) {
-			service.signUp(user);
-			msg = "User created successfully!";
+	public ResponseEntity<AuthResponse> signUp(@Valid @RequestBody Users user) {
+		
+		Users existingUser = service.getUser(user.getUsername());
+		if (existingUser != null) {
+			throw new DuplicateResourceException("User", "username", user.getUsername());
 		}
-		else
-			msg = "Username already exists!";
-		return msg;
+		
+		// Default role to CUSTOMER if not specified
+		if (user.getRole() == null || user.getRole().isBlank()) {
+			user.setRole("CUSTOMER");
+		}
+		
+		// Validate role
+		if (!List.of("CUSTOMER", "ADMIN").contains(user.getRole().toUpperCase())) {
+			throw new BadRequestException("Invalid role. Must be CUSTOMER or ADMIN");
+		}
+		
+		service.signUp(user);
+		logger.info("User registered: {}", user.getUsername());
+		
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(new AuthResponse(null, user.getUsername(), user.getRole(), 
+				"User created successfully!"));
 	}
 
 	// ---------------- SignIn ----------------
-		@PostMapping("/signIn")
-		public String signIn(@RequestBody UserLoginData userLoginData) {
-			String username = userLoginData.getUsername();
-			String password = userLoginData.getPassword();
+	@PostMapping("/signIn")
+	public ResponseEntity<AuthResponse> signIn(@Valid @RequestBody UserLoginData userLoginData) {
+		
+		String username = userLoginData.getUsername();
+		String password = userLoginData.getPassword();
 
-			Users u = service.getUser(username);
-
-			if (u == null) {
-				return "Username does not exist!";
-			} else {
-				if (u.getPassword().equals(password)) { // Plain text for now
-					if ("admin".equalsIgnoreCase(u.getRole())) {
-						return "admin";
-					} else {
-						return "customer";
-					}
-				} else {
-					return "wrong password";
-				}
-			}
+		Users user = service.getUser(username);
+		if (user == null) {
+			throw new ResourceNotFoundException("User", "username", username);
 		}
 
-		// ---------------- Get All Users (Admin Only) ----------------
-		@GetMapping("/user")
-		public List<Users> getAllUsers() {
-			// Ideally, check if the requester is admin before returning all users
-			return service.getAllUsers();
+		if (!service.validate(username, password)) {
+			logger.warn("Failed login attempt for user: {}", username);
+			throw new BadRequestException("Wrong password");
+		}
+
+		// Generate JWT token
+		String token = jwtUtil.generateToken(username, user.getRole());
+		logger.info("User logged in: {}", username);
+		
+		return ResponseEntity.ok(new AuthResponse(token, username, user.getRole(), 
+			"Login successful"));
+	}
+
+	// ---------------- Get All Users (Admin Only) ----------------
+	@GetMapping("/user")
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<List<UserResponse>> getAllUsers() {
+		
+		List<UserResponse> users = service.getAllUsers()
+			.stream()
+			.map(UserResponse::new)
+			.collect(Collectors.toList());
+		
+		logger.info("Admin retrieved all users. Total: {}", users.size());
+		return ResponseEntity.ok(users);
+	}
+	
+	// ---------------- Get User by Username ----------------
+	@GetMapping("/user/{username}")
+	@PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+	public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
+		
+		Users user = service.getUser(username);
+		if (user == null) {
+			throw new ResourceNotFoundException("User", "username", username);
 		}
 		
-		@PutMapping("/user/{id}") 
-			public String updateUser(@PathVariable Long id, @RequestBody Users user) {
-				user.setId(id);
-				return service.updateUser(user);
-			}
+		return ResponseEntity.ok(new UserResponse(user));
+	}
+	
+	// ---------------- Update User (Admin Only) ----------------
+	@PutMapping("/user/{id}") 
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<UserResponse> updateUser(
+			@PathVariable Long id, 
+			@Valid @RequestBody Users user) {
 		
-		// DELETE user by id -by admin
-		@DeleteMapping("/deleteUser/{id}")
-		public String deleteUser(@PathVariable Long id) {
-			return service.deleteUser(id);
+		user.setId(id);
+		String result = service.updateUser(user);
+		
+		if (result.contains("not found")) {
+			throw new ResourceNotFoundException("User", "id", id);
 		}
+		
+		if (result.contains("cannot be blank")) {
+			throw new BadRequestException(result);
+		}
+		
+		Users updatedUser = service.getAllUsers().stream()
+			.filter(u -> u.getId().equals(id))
+			.findFirst()
+			.orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+		
+		logger.info("User updated: {}", id);
+		return ResponseEntity.ok(new UserResponse(updatedUser));
+	}
+	
+	// ---------------- DELETE user by id (Admin Only) ----------------
+	@DeleteMapping("/deleteUser/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+		
+		String result = service.deleteUser(id);
+		
+		if (result.contains("not found")) {
+			throw new ResourceNotFoundException("User", "id", id);
+		}
+		
+		if (result.contains("Cannot delete")) {
+			throw new BadRequestException(result);
+		}
+		
+		logger.info("User deleted: {}", id);
+		return ResponseEntity.ok("User deleted successfully");
+	}
 }

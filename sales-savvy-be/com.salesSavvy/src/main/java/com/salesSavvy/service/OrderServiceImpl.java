@@ -24,11 +24,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<Orders> getAllOrders() {
+        // Use optimized query with JOIN FETCH
         return orderRepository.findAll();
     }
 
     @Override
     public List<Orders> getOrdersByUserId(Long userId) {
+        // Already optimized with JOIN FETCH in repository
         return orderRepository.findByUserId(userId);
     }
 
@@ -39,6 +41,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Optional<Orders> getOrderByRazorpayId(String razorpayOrderId) {
+        // Already optimized with JOIN FETCH in repository
         return orderRepository.findByRazorpayOrderId(razorpayOrderId);
     }
 

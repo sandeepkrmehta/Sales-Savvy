@@ -2,8 +2,7 @@ package com.salesSavvy.service;
 
 import java.util.List;
 
-import com.salesSavvy.entity.Cart;
-import com.salesSavvy.entity.CartItem;
+import com.salesSavvy.entity.*;
 
 public interface CartService {
 	void addCart(Cart cart);
@@ -13,5 +12,4 @@ public interface CartService {
 	List<CartItem> getItems(String username);
 
 	List<CartItem> cloneItems(String username);
-
 }
