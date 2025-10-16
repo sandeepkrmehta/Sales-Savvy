@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import loadRazorpay from "../utils/loadRzp";
-// import "./Cart.css";
+import { authService } from "../utils/auth";
+import { api } from "../utils/api";
 
 export default function Cart() {
   const [items, setItems] = useState([]);
   const [loading, setLoad] = useState(true);
   const [error, setErr] = useState("");
 
-  const username = localStorage.getItem("username");
+  const username = authService.getUsername();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!username) return;
     (async () => {
       try {
-        const r = await fetch(`http://localhost:8080/getCart/${username}`);
+        const r = await api.get(`/getCart/${username}`);
         if (!r.ok) throw new Error("Failed to fetch cart");
         setItems(await r.json());
       } catch (e) {
@@ -34,11 +35,7 @@ export default function Cart() {
     const ok = await loadRazorpay();
     if (!ok) return alert("Razorpay SDK failed to load. Check your internet.");
 
-    const res = await fetch("http://localhost:8080/payment/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, amount: total * 100 }),
-    });
+    const res = await api.post("/payment/create", { username, amount: total * 100 });
     if (!res.ok) return alert(await res.text());
     const data = await res.json();
 
@@ -50,15 +47,11 @@ export default function Cart() {
       description: "Order Payment",
       order_id: data.orderId,
       handler: async (resp) => {
-        const vr = await fetch("http://localhost:8080/payment/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            orderId: resp.razorpay_order_id,
-            paymentId: resp.razorpay_payment_id,
-            signature: resp.razorpay_signature,
-          }),
+        const vr = await api.post("/payment/verify", {
+          username,
+          orderId: resp.razorpay_order_id,
+          paymentId: resp.razorpay_payment_id,
+          signature: resp.razorpay_signature,
         });
         if (!vr.ok) return alert(await vr.text());
         const orderId = await vr.text();

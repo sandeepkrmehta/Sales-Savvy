@@ -1,38 +1,45 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../utils/auth";
 
 export default function Sign_in() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setLoading(true);
 
     const data = { username, password };
 
     try {
       const resp = await fetch("http://localhost:8080/signIn", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "text/plain" 
-      },
-      body: JSON.stringify(data),
-    });
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-
-      const msg = await resp.text(); // This will be "admin", "customer", or an error message
-
-      if (msg === "admin" || msg === "customer") {
-        localStorage.setItem("username", username); // Username is already known from input
-        navigate(`/${msg}_home`);
-      } else {
-        alert(msg); // show error message like "wrong password"
+      if (!resp.ok) {
+        const errorData = await resp.json();
+        alert(errorData.message || "Login failed");
+        return;
       }
+
+      const result = await resp.json();
+
+      authService.setAuth(result.token, result.username, result.role);
+
+      const role = result.role.toLowerCase();
+      navigate(`/${role}_home`);
     } catch (err) {
       console.error("Login error:", err);
       alert("Could not sign in");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -47,6 +54,7 @@ export default function Sign_in() {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
         </div>
 
@@ -57,11 +65,12 @@ export default function Sign_in() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
 
-        <button className="btn btn-primary w-100" type="submit">
-          Log in
+        <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
     </div>

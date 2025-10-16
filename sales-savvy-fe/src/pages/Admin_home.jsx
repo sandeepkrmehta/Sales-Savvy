@@ -1,16 +1,14 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-// import "./Admin_home.css";
+import { authService } from "../utils/auth";
 
 export default function Admin_home() {
   const navigate = useNavigate();
 
-  // 🟢 Logout handler
   const handleLogout = () => {
-    // Clear session / localStorage if you store login info
-    localStorage.removeItem("adminToken"); // Example
+    authService.logout();
     alert("Logged out successfully!");
-    navigate("/"); // Redirect to login page
+    navigate("/");
   };
 
   return (

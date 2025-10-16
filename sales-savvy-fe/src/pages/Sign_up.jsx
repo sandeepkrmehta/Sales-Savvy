@@ -3,16 +3,18 @@ import { useNavigate } from "react-router-dom";
 
 export default function Sign_up() {
   const [username, setUsername] = useState("");
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [gender, setGender]     = useState("");
-  const [dob, setDob]           = useState("");
-  const [role, setRole]         = useState("");
+  const [gender, setGender] = useState("");
+  const [dob, setDob] = useState("");
+  const [role, setRole] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate(); // 🟢 React Router navigation
+  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setLoading(true);
 
     const data = { username, email, password, gender, dob, role };
 
@@ -23,16 +25,20 @@ export default function Sign_up() {
         body: JSON.stringify(data),
       });
 
-      const msg = await resp.text();
-      alert(msg);
-
-      // 🟢 Redirect to Sign In page if signup successful
-      if (msg.toLowerCase().includes("success")) {
-        navigate("/sign_in");
+      if (!resp.ok) {
+        const errorData = await resp.json();
+        alert(errorData.message || "Registration failed");
+        return;
       }
+
+      const result = await resp.json();
+      alert(result.message || "Registration successful!");
+      navigate("/sign_in");
     } catch (err) {
       console.error(err);
       alert("Failed to sign up");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -47,6 +53,7 @@ export default function Sign_up() {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
         </div>
 
@@ -57,6 +64,7 @@ export default function Sign_up() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
 
@@ -67,6 +75,7 @@ export default function Sign_up() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
 
@@ -76,6 +85,7 @@ export default function Sign_up() {
             id="gender"
             value={gender}
             onChange={(e) => setGender(e.target.value)}
+            required
           >
             <option value="">Select…</option>
             <option value="M">Male</option>
@@ -90,6 +100,7 @@ export default function Sign_up() {
             type="date"
             value={dob}
             onChange={(e) => setDob(e.target.value)}
+            required
           />
         </div>
 
@@ -99,15 +110,16 @@ export default function Sign_up() {
             id="role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
+            required
           >
             <option value="">Select…</option>
-            <option value="customer">Customer</option>
-            <option value="admin">Admin</option>
+            <option value="CUSTOMER">Customer</option>
+            <option value="ADMIN">Admin</option>
           </select>
         </div>
 
-        <button className="btn btn-primary w-100" type="submit">
-          Sign up
+        <button className="btn btn-primary w-100" type="submit" disabled={loading}>
+          {loading ? "Signing up..." : "Sign up"}
         </button>
       </form>
     </div>

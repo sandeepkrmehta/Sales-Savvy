@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import Customer_Orders from "../pages/Customer_Orders";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../utils/auth";
+import { api } from "../utils/api";
 
 export default function Customer_home() {
   const [products, setProducts] = useState([]);
@@ -12,8 +14,8 @@ export default function Customer_home() {
   const [cartItems, setCartItems] = useState([]);
 
   const navigate = useNavigate();
+  const username = authService.getUsername();
 
-  // 🟢 Fetch products & user info
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -28,16 +30,14 @@ export default function Customer_home() {
     };
 
     const fetchUser = async () => {
-      const username = localStorage.getItem("username");
       if (!username) return;
       try {
-        const res = await fetch(`http://localhost:8080/api/users/${username}`);
+        const res = await api.get(`/user/${username}`);
         if (!res.ok) throw new Error("Failed to fetch user info");
         const data = await res.json();
         setUserId(data.id);
 
-        // Fetch cart
-        const cartRes = await fetch(`http://localhost:8080/getCart/${username}`);
+        const cartRes = await api.get(`/getCart/${username}`);
         if (!cartRes.ok) throw new Error("Failed to fetch cart");
         setCartItems(await cartRes.json());
       } catch (err) {
@@ -47,28 +47,21 @@ export default function Customer_home() {
 
     fetchProducts();
     fetchUser();
-  }, []);
+  }, [username]);
 
-  // 🟢 Add product to cart
   async function handleAddToCart(product, qty = 1) {
-    const username = localStorage.getItem("username");
     if (!username) return alert("Please login first!");
 
     try {
-      const res = await fetch("http://localhost:8080/addToCart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          productId: product.id,
-          quantity: qty,
-        }),
+      const res = await api.post("/addToCart", {
+        username,
+        productId: product.id,
+        quantity: qty,
       });
 
       if (res.ok) {
         alert(`Added "${product.name}" x${qty} to cart`);
-        // refresh cart items
-        const cartRes = await fetch(`http://localhost:8080/getCart/${username}`);
+        const cartRes = await api.get(`/getCart/${username}`);
         setCartItems(await cartRes.json());
       } else {
         const msg = await res.text();
@@ -80,21 +73,18 @@ export default function Customer_home() {
     }
   }
 
-  // 🟢 Logout
   const handleLogout = () => {
-    localStorage.removeItem("username");
+    authService.logout();
     alert("Logged out successfully!");
     navigate("/");
   };
 
-  // 🟢 Filter products
   const filtered = products.filter((p) =>
     (p.name + p.description).toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="customer-home">
-      {/* Navbar */}
       <nav className="navbar">
         <div className="logo">Sales Savvy</div>
         <input
@@ -110,7 +100,6 @@ export default function Customer_home() {
         </div>
       </nav>
 
-      {/* Products */}
       <div className="products-section">
         {loading && <p>Loading...</p>}
         {error && <p className="error">{error}</p>}
@@ -126,7 +115,6 @@ export default function Customer_home() {
         )}
       </div>
 
-      {/* My Orders */}
       {userId && <Customer_Orders userId={userId} />}
     </div>
   );
